@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.7"
+serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = "0.4"
+reqwest = "0.12"

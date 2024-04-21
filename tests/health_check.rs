@@ -1,9 +1,20 @@
+use once_cell::sync::Lazy;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 
-use zero2prod_axum::configuration::get_configuration;
+use zero2prod_axum::configuration::{get_configuration, DatabaseSettings};
 use zero2prod_axum::startup::Application;
+use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
+
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let tracing_subscriber = get_subscriber("test".into(), "debug".into());
+    init_subscriber(tracing_subscriber);
+});
 
 pub async fn spawn_app() -> String {
+    // Setup logger for tests, `once_cell::sync::Lazy` ensures that the initialization will be executed only once
+    Lazy::force(&TRACING);
+
     let configuration = {
         let mut configuration = get_configuration().expect("Failed to read configuration");
 
@@ -16,6 +27,9 @@ pub async fn spawn_app() -> String {
         configuration
     };
 
+    // Create and migrate database
+    configure_database(&configuration.database).await;
+
     let application = Application::build(configuration)
         .await
         .expect("Failed to build application");
@@ -24,6 +38,30 @@ pub async fn spawn_app() -> String {
     tokio::spawn(application.start_service());
 
     format!("http://127.0.0.1:{}", application_port)
+}
+
+async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    // Create database
+    let mut connection = PgConnection::connect_with(&config.without_db())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .await
+        .expect("Failed to create database");
+
+    // Migrate database
+    let connection_pool = PgPool::connect_with(config.with_db())
+        .await
+        .expect("Failed to connnect to Postgres");
+
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to migrate database");
+
+    connection_pool
 }
 
 #[tokio::test]
@@ -62,6 +100,15 @@ async fn test_subscribe_returns_200_for_valid_form_data() {
 
     // Assert
     assert_eq!(200, response.status().as_u16());
+
+    // let saved = sqlx::query!("SELECT email, name, status FROM subscriptions")
+    //     .fetch_one(&app.db_pool)
+    //     .await
+    //     .expect("Failed to fetch saved subscription");
+    //
+    // assert_eq!(saved.email, "ursula_le_guin@gmail.com");
+    // assert_eq!(saved.name, "le guin");
+    // assert_eq!(saved.status, "pending_confirmation")
 }
 
 #[tokio::test]

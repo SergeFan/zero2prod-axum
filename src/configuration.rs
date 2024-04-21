@@ -1,5 +1,6 @@
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::ConnectOptions;
 
 pub enum Environment {
     Local,
@@ -64,9 +65,9 @@ impl DatabaseSettings {
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
-        let _options = self.without_db().database(&self.database_name);
-
-        todo!("tracing_log implement")
+        self.without_db()
+            .database(&self.database_name)
+            .log_statements(tracing_log::log::LevelFilter::Trace)
     }
 }
 

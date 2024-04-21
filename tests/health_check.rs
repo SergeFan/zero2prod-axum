@@ -1,15 +1,29 @@
-use tokio::net::TcpListener;
+use uuid::Uuid;
 
-use zero2prod_axum::app;
+use zero2prod_axum::configuration::get_configuration;
+use zero2prod_axum::startup::Application;
 
 pub async fn spawn_app() -> String {
-    let app = app();
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
+    let configuration = {
+        let mut configuration = get_configuration().expect("Failed to read configuration");
 
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        // Use a different database for each test case
+        configuration.database.database_name = Uuid::new_v4().to_string();
 
-    format!("http://127.0.0.1:{}", port)
+        // Use a random OS port
+        configuration.application_port = 0;
+
+        configuration
+    };
+
+    let application = Application::build(configuration)
+        .await
+        .expect("Failed to build application");
+    let application_port = application.port();
+
+    tokio::spawn(application.start_service());
+
+    format!("http://127.0.0.1:{}", application_port)
 }
 
 #[tokio::test]
@@ -73,7 +87,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 
         // Assert
         assert_eq!(
-            400,
+            422,
             response.status().as_u16(),
             // Additional customised error message on test failure
             "The API did not fail with 400 Bad Request when the payload was {}.",

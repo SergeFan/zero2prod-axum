@@ -1,9 +1,11 @@
-use zero2prod_axum::{app, listener};
+use zero2prod_axum::configuration::get_configuration;
+use zero2prod_axum::startup::Application;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let app = app();
-    let listener = listener().await;
+    let configuration = get_configuration().expect("Failed to read configuration");
 
-    axum::serve(listener, app).await
+    let application = Application::build(configuration).await?;
+
+    application.start_service().await
 }

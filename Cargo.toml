@@ -1,13 +1,22 @@
 [package]
 name = "zero2prod-axum"
 version = "0.1.0"
+authors = ["Jaeson Fan"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod-axum"
+
 [dependencies]
 axum = "0.7"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+claims = "0.7"
 config = "0.14"
 once_cell = "1"
 serde = { version = "1", features = ["derive"] }
@@ -20,8 +29,9 @@ tracing-bunyan-formatter = "0.3"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 reqwest = "0.12"
+unicode-segmentation = "1.11"
 uuid = { version = "1.8", features = ["v4", "serde"] }
-
+validator = "0.18"
 
 [dependencies.sqlx]
 version = "0.7"
@@ -34,3 +44,9 @@ features = [
     "chrono",
     "migrate"
 ]
+
+[dev-dependencies]
+fake = "2.9"
+quickcheck = "1.0"
+quickcheck_macros = "1.0"
+rand = "0.8.5"

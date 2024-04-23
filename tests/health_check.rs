@@ -7,8 +7,22 @@ use zero2prod_axum::startup::Application;
 use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
 
 static TRACING: Lazy<()> = Lazy::new(|| {
-    let tracing_subscriber = get_subscriber("test".into(), "debug".into());
-    init_subscriber(tracing_subscriber);
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        init_subscriber(get_subscriber(
+            subscriber_name,
+            default_filter_level,
+            std::io::stdout,
+        ));
+    } else {
+        init_subscriber(get_subscriber(
+            subscriber_name,
+            default_filter_level,
+            std::io::sink,
+        ));
+    }
 });
 
 pub async fn spawn_app() -> String {
@@ -112,7 +126,7 @@ async fn test_subscribe_returns_200_for_valid_form_data() {
 }
 
 #[tokio::test]
-async fn subscribe_returns_a_400_when_data_is_missing() {
+async fn test_subscribe_returns_a_422_when_data_is_missing() {
     // Arrange
     let app_address = spawn_app().await;
     let client = reqwest::Client::new();
@@ -137,7 +151,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             422,
             response.status().as_u16(),
             // Additional customised error message on test failure
-            "The API did not fail with 400 Bad Request when the payload was {}.",
+            "The API did not fail with 422 Unprocessable Content when the payload was {}.",
             error_message
         );
     }

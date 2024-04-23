@@ -5,7 +5,8 @@ use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     // Setup logger
-    let tracing_subscriber = get_subscriber("zero2prod-axum".into(), "info".into());
+    let tracing_subscriber =
+        get_subscriber("zero2prod-axum".into(), "info".into(), std::io::stdout);
     init_subscriber(tracing_subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration");

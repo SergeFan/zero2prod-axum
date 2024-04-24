@@ -33,7 +33,7 @@ mod tests {
     use fake::faker::internet::en::SafeEmail;
     use fake::Fake;
     use quickcheck::Gen;
-    use rand::thread_rng;
+    use rand::rngs::ThreadRng;
 
     use super::SubscriberEmail;
 
@@ -60,7 +60,7 @@ mod tests {
 
     impl quickcheck::Arbitrary for ValidEmailFixture {
         fn arbitrary(_: &mut Gen) -> Self {
-            let email = SafeEmail().fake_with_rng(&mut thread_rng());
+            let email = SafeEmail().fake_with_rng(&mut ThreadRng::default());
             Self(email)
         }
     }

@@ -1,6 +1,9 @@
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
-use crate::domain::NewSubscriber;
+use anyhow::Context;
+use axum::extract::rejection::FormRejection;
+use axum::extract::FromRequest;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -9,7 +12,40 @@ use chrono::Utc;
 use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::routes::error_chain_fmt;
 use crate::startup::ApplicationState;
+
+#[derive(thiserror::Error)]
+pub enum SubscribeError {
+    #[error(transparent)]
+    FormRejection(#[from] FormRejection),
+    #[error("{0}")]
+    ValidationError(String),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+}
+
+impl Debug for SubscribeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl IntoResponse for SubscribeError {
+    fn into_response(self) -> Response {
+        match self {
+            SubscribeError::FormRejection(_) | SubscribeError::ValidationError(_) => {
+                StatusCode::BAD_REQUEST.into_response()
+            }
+            SubscribeError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        }
+    }
+}
+
+#[derive(FromRequest)]
+#[from_request(via(Form), rejection(SubscribeError))]
+pub struct SubscriberForm<T>(T);
 
 #[derive(serde::Deserialize)]
 pub struct SubscriberInfo {
@@ -17,27 +53,39 @@ pub struct SubscriberInfo {
     email: String,
 }
 
+impl TryFrom<SubscriberInfo> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(value: SubscriberInfo) -> Result<Self, Self::Error> {
+        let email = SubscriberEmail::parse(value.email)?;
+        let name = SubscriberName::parse(value.name)?;
+
+        Ok(Self { email, name })
+    }
+}
+
+#[tracing::instrument(
+    name = "Adding a new subscriber",
+    skip(state, form),
+    fields(subscriber_email = %form.email, subscriber_name = %form.name)
+)]
 pub async fn subscribe(
     State(state): State<Arc<ApplicationState>>,
-    Form(form): Form<SubscriberInfo>,
-) -> Response {
-    sqlx::query!(
-        r#"
-        INSERT INTO
-        subscriptions (id, email, name, subscribed_at, status)
-        VALUES
-        ($1, $2, $3, $4, 'pending_confirmation')
-        "#,
-        Uuid::new_v4(),
-        form.email,
-        form.name,
-        Utc::now()
-    )
-    .execute(&state.pool)
-    .await
-    .expect("Failed to insert a new subscriber to the database");
+    SubscriberForm(form): SubscriberForm<SubscriberInfo>,
+) -> Result<Response, SubscribeError> {
+    let new_subscriber = form.try_into().map_err(SubscribeError::ValidationError)?;
 
-    StatusCode::OK.into_response()
+    let mut trasaction = state
+        .pool
+        .begin()
+        .await
+        .context("Failed to acquire a Postgres connection from the pool")?;
+
+    let _subscriber_id = insert_subscriber(&mut trasaction, &new_subscriber)
+        .await
+        .context("Failed to insert new subscriber in the database")?;
+
+    Ok(StatusCode::OK.into_response())
 }
 
 #[tracing::instrument(

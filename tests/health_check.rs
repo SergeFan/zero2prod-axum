@@ -126,7 +126,7 @@ async fn test_subscribe_returns_200_for_valid_form_data() {
 }
 
 #[tokio::test]
-async fn test_subscribe_returns_a_422_when_data_is_missing() {
+async fn test_subscribe_returns_a_400_when_data_is_missing() {
     // Arrange
     let app_address = spawn_app().await;
     let client = reqwest::Client::new();
@@ -148,10 +148,10 @@ async fn test_subscribe_returns_a_422_when_data_is_missing() {
 
         // Assert
         assert_eq!(
-            422,
+            400,
             response.status().as_u16(),
             // Additional customised error message on test failure
-            "The API did not fail with 422 Unprocessable Content when the payload was {}.",
+            "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message
         );
     }

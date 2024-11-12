@@ -15,32 +15,50 @@ if ! [ -x "$(command -v sqlx)" ]; then
   exit 1
 fi
 
-DB_USER="${POSTGRES_USER:=postgres}"
-DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
-DB_NAME="${POSTGRES_DB:=newsletter}"
-DB_HOST="${POSTGRES_HOST:=localhost}"
+# Check if a custom parameter has been set, otherwise using default values
 DB_PORT="${POSTGRES_PORT:=5432}"
+SUPERUSER="${SUPERUSER:=postgres}"
+SUPERUSER_PWD="${SUPERUSER_PWD:=password}"
+APP_USER="${APP_USER:=app}"
+APP_USER_PWD="${APP_USER_PWD:=secret}"
+APP_DB_NAME="${APP_DB_NAME:=newsletter}"
 
 if [[ -z "${SKIP_DOCKER}" ]]
 then
+  # Launch postgres using Docker
+  CONTAINER_NAME="postgres"
   docker run \
-    -e POSTGRES_USER=${DB_USER} \
-    -e POSTGRES_PASSWORD=${DB_PASSWORD} \
-    -e POSTGRES_DB=${DB_NAME} \
-    -p "${DB_PORT}":5432 \
-    -d postgres \
+    --env POSTGRES_USER="${SUPERUSER}" \
+    --env POSTGRES_PASSWORD="${SUPERUSER_PWD}" \
+    --health-cmd="pg_isready -U ${SUPERUSER} || exit 1" \
+    --health-interval=1s \
+    --health-timeout=10s \
+    --health-retries=5 \
+    --publish "${DB_PORT}":5432 \
+    --detach \
+    --name "${CONTAINER_NAME}" \
     postgres -N 1000  # Increase maximum number of connections for testing purpose
-fi
 
-export PGPASSWORD="${DB_PASSWORD}"
-until psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -d "${DB_NAME}" -c '\q'; do
-  >&2 echo "Postgres is still unavailable - waiting..."
-  sleep 1
-done
+  until [ \
+    "$(docker inspect -f "{{.State.Health.Status}}" "${CONTAINER_NAME}")" == "healthy" \
+  ]; do
+    >&2 echo "Postgres is still unavailable - waiting..."
+    sleep 1
+  done
+
+  # Create the app user
+  CREATE_QUERY="CREATE USER ${APP_USER} WITH PASSWORD '${APP_USER_PWD}';"
+  docker exec -it "${CONTAINER_NAME}" psql -U "${SUPERUSER}" -c "${CREATE_QUERY}"
+
+  # Grant create db privileges to the app user
+  GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
+  docker exec -it "${CONTAINER_NAME}" psql -U "${SUPERUSER}" -c "${GRANT_QUERY}"
+fi
 
 >&2 echo "Postgres is up and running on port ${DB_PORT} - running migrations..."
 
-DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+# Create the application database
+DATABASE_URL=postgres://${APP_USER}:${APP_USER_PWD}@localhost:${DB_PORT}/${APP_DB_NAME}
 export DATABASE_URL
 
 sqlx database create

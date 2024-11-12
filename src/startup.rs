@@ -22,7 +22,7 @@ impl Application {
         let address = format!("127.0.0.1:{}", configuration.application_port);
         let tcp_listener = listener(address).await;
 
-        let port = tcp_listener.local_addr().unwrap().port();
+        let port = tcp_listener.local_addr()?.port();
 
         let serve = run(tcp_listener, connection_pool).await?;
 

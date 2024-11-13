@@ -1,9 +1,8 @@
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
-
 use zero2prod_axum::configuration::{get_configuration, DatabaseSettings};
-use zero2prod_axum::startup::Application;
+use zero2prod_axum::startup::{get_connection_pool, Application};
 use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
 
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -25,7 +24,12 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     }
 });
 
-pub async fn spawn_app() -> String {
+pub struct TestApp {
+    pub address: String,
+    pub db_pool: PgPool,
+}
+
+pub async fn spawn_app() -> TestApp {
     // Setup logger for tests, `once_cell::sync::Lazy` ensures that the initialization will be executed only once
     Lazy::force(&TRACING);
 
@@ -44,14 +48,17 @@ pub async fn spawn_app() -> String {
     // Create and migrate database
     configure_database(&configuration.database).await;
 
-    let application = Application::build(configuration)
+    let application = Application::build(configuration.clone())
         .await
         .expect("Failed to build application");
     let application_port = application.port();
 
     tokio::spawn(application.start_service());
 
-    format!("http://127.0.0.1:{}", application_port)
+    TestApp {
+        address: format!("http://127.0.0.1:{}", application_port),
+        db_pool: get_connection_pool(&configuration.database),
+    }
 }
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
@@ -81,12 +88,12 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
 #[tokio::test]
 async fn test_health_check_works() {
     // Arrange
-    let app_address = spawn_app().await;
+    let test_app = spawn_app().await;
     let client = reqwest::Client::new();
 
     // Act
     let response = client
-        .get(format!("{}/health_check", app_address))
+        .get(format!("{}/health_check", test_app.address))
         .send()
         .await
         .expect("Failed to execute request");
@@ -99,13 +106,13 @@ async fn test_health_check_works() {
 #[tokio::test]
 async fn test_subscribe_returns_200_for_valid_form_data() {
     // Arrange
-    let app_address = spawn_app().await;
+    let test_app = spawn_app().await;
     let client = reqwest::Client::new();
 
     // Act
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
     let response = client
-        .post(&format!("{}/subscriptions", &app_address))
+        .post(format!("{}/subscriptions", test_app.address))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
         .send()
@@ -115,20 +122,20 @@ async fn test_subscribe_returns_200_for_valid_form_data() {
     // Assert
     assert_eq!(200, response.status().as_u16());
 
-    // let saved = sqlx::query!("SELECT email, name, status FROM subscriptions")
-    //     .fetch_one(&app.db_pool)
-    //     .await
-    //     .expect("Failed to fetch saved subscription");
-    //
-    // assert_eq!(saved.email, "ursula_le_guin@gmail.com");
-    // assert_eq!(saved.name, "le guin");
-    // assert_eq!(saved.status, "pending_confirmation")
+    let saved = sqlx::query!("SELECT email, name, status FROM subscriptions")
+        .fetch_one(&test_app.db_pool)
+        .await
+        .expect("Failed to fetch saved subscription");
+
+    assert_eq!(saved.email, "ursula_le_guin@gmail.com");
+    assert_eq!(saved.name, "le guin");
+    assert_eq!(saved.status, "pending_confirmation")
 }
 
 #[tokio::test]
 async fn test_subscribe_returns_a_400_when_data_is_missing() {
     // Arrange
-    let app_address = spawn_app().await;
+    let test_app = spawn_app().await;
     let client = reqwest::Client::new();
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
@@ -139,7 +146,7 @@ async fn test_subscribe_returns_a_400_when_data_is_missing() {
     for (invalid_body, error_message) in test_cases {
         // Act
         let response = client
-            .post(&format!("{}/subscriptions", &app_address))
+            .post(format!("{}/subscriptions", test_app.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(invalid_body)
             .send()

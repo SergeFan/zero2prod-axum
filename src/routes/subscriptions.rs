@@ -75,15 +75,20 @@ pub async fn subscribe(
 ) -> Result<Response, SubscribeError> {
     let new_subscriber = form.try_into().map_err(SubscribeError::ValidationError)?;
 
-    let mut trasaction = state
+    let mut transaction = state
         .pool
         .begin()
         .await
         .context("Failed to acquire a Postgres connection from the pool")?;
 
-    let _subscriber_id = insert_subscriber(&mut trasaction, &new_subscriber)
+    let _subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
         .await
         .context("Failed to insert new subscriber in the database")?;
+
+    transaction
+        .commit()
+        .await
+        .context("Failed to commit SQL transaction to store a new subscriber")?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -109,7 +114,8 @@ pub async fn insert_subscriber(
         Utc::now()
     );
 
-    transaction.execute(query).await?;
+    let row_affected = transaction.execute(query).await?;
+    println!("{} row affected.", row_affected.rows_affected());
 
     Ok(subscriber_id)
 }

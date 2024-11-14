@@ -1,14 +1,17 @@
-use std::sync::Arc;
-
+use crate::configuration::{DatabaseSettings, Settings};
+use crate::routes::{health_check, subscribe};
+use axum::body::Body;
+use axum::http::Request;
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::net::TcpListener;
-
-use crate::configuration::{DatabaseSettings, Settings};
-use crate::routes::{health_check, subscribe};
+use tower_http::trace::TraceLayer;
+use tower_request_id::{RequestId, RequestIdLayer};
+use tracing::info_span;
 
 pub struct Application {
     serve: Serve<Router, Router>,
@@ -52,7 +55,25 @@ pub async fn run(
         .route("/", get(root))
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
-        .with_state(application_state);
+        .with_state(application_state)
+        .layer(
+            TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
+                // We get the request id from the extensions
+                let request_id = request
+                    .extensions()
+                    .get::<RequestId>()
+                    .map(ToString::to_string)
+                    .unwrap_or_else(|| "unknown".into());
+                // And then we put it along with other information into the `request` span
+                info_span!(
+                    "request",
+                    id = %request_id,
+                    method = %request.method(),
+                    uri = %request.uri(),
+                )
+            }),
+        )
+        .layer(RequestIdLayer);
 
     Ok(axum::serve(tcp_listener, app))
 }

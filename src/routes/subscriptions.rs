@@ -114,8 +114,7 @@ pub async fn insert_subscriber(
         Utc::now()
     );
 
-    let row_affected = transaction.execute(query).await?;
-    println!("{} row affected.", row_affected.rows_affected());
+    transaction.execute(query).await?;
 
     Ok(subscriber_id)
 }

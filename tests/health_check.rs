@@ -1,11 +1,11 @@
-use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use std::sync::LazyLock;
 use uuid::Uuid;
 use zero2prod_axum::configuration::{get_configuration, DatabaseSettings};
 use zero2prod_axum::startup::{get_connection_pool, Application};
 use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
 
-static TRACING: Lazy<()> = Lazy::new(|| {
+static TRACING: LazyLock<()> = LazyLock::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();
 
@@ -31,7 +31,7 @@ pub struct TestApp {
 
 pub async fn spawn_app() -> TestApp {
     // Setup logger for tests, `once_cell::sync::Lazy` ensures that the initialization will be executed only once
-    Lazy::force(&TRACING);
+    LazyLock::force(&TRACING);
 
     let configuration = {
         let mut configuration = get_configuration().expect("Failed to read configuration");

@@ -17,12 +17,12 @@ name = "zero2prod-axum"
 anyhow = "1.0"
 axum = { version = "0.7", features = ["macros"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-claims = "0.7"
-config = "0.14"
+claims = "0.8"
+config = "0.15"
 secrecy = { version = "0.10", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 serde-aux = "4.5"
-serde_json = "1"
+serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tower = "0.5"

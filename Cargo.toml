@@ -50,7 +50,7 @@ features = [
 ]
 
 [dev-dependencies]
-fake = "3.0"
+fake = "3.1"
 quickcheck = "1.0"
 quickcheck_macros = "1.0"
 rand = "0.8.5"

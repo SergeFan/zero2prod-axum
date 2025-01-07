@@ -1,7 +1,7 @@
+use sea_orm::sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sea_orm::sqlx::ConnectOptions;
 use secrecy::{ExposeSecret, SecretString};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
-use sqlx::ConnectOptions;
 
 pub enum Environment {
     Local,

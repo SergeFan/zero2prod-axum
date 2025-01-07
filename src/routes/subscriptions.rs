@@ -1,6 +1,9 @@
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::routes::error_chain_fmt;
+use crate::startup::ApplicationState;
 use anyhow::Context;
 use axum::extract::rejection::FormRejection;
 use axum::extract::FromRequest;
@@ -9,12 +12,11 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Form;
 use chrono::Utc;
-use sqlx::{Executor, Postgres, Transaction};
+use entity::entities::subscriptions;
+use sea_orm::prelude::DateTimeWithTimeZone;
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, DatabaseTransaction, TransactionTrait};
 use uuid::Uuid;
-
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
-use crate::routes::error_chain_fmt;
-use crate::startup::ApplicationState;
 
 #[derive(thiserror::Error)]
 pub enum SubscribeError {
@@ -75,13 +77,13 @@ pub async fn subscribe(
 ) -> Result<Response, SubscribeError> {
     let new_subscriber = form.try_into().map_err(SubscribeError::ValidationError)?;
 
-    let mut transaction = state
-        .pool
+    let transaction = state
+        .db_connection
         .begin()
         .await
         .context("Failed to acquire a Postgres connection from the pool")?;
 
-    let _subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
+    let _subscriber_id = insert_subscriber(&transaction, &new_subscriber)
         .await
         .context("Failed to insert new subscriber in the database")?;
 
@@ -98,23 +100,33 @@ pub async fn subscribe(
     skip(new_subscriber, transaction)
 )]
 pub async fn insert_subscriber(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &DatabaseTransaction,
     new_subscriber: &NewSubscriber,
-) -> Result<Uuid, sqlx::Error> {
+) -> Result<Uuid, anyhow::Error> {
     let subscriber_id = Uuid::new_v4();
 
-    let query = sqlx::query!(
-        r#"
-        INSERT INTO subscriptions (id, email, name, subscribed_at, status)
-        VALUES ($1, $2, $3, $4, 'pending_confirmation')
-        "#,
-        subscriber_id,
-        new_subscriber.email.as_ref(),
-        new_subscriber.name.as_ref(),
-        Utc::now()
-    );
+    subscriptions::ActiveModel {
+        id: Set(Uuid::new_v4()),
+        email: Set(new_subscriber.email.as_ref().to_string()),
+        name: Set(new_subscriber.name.as_ref().to_string()),
+        subscribed_at: Set(DateTimeWithTimeZone::from(Utc::now())),
+        status: Default::default(),
+    }
+    .insert(transaction)
+    .await?;
 
-    transaction.execute(query).await?;
+    // let query = sqlx::query!(
+    //     r#"
+    //     INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+    //     VALUES ($1, $2, $3, $4, 'pending_confirmation')
+    //     "#,
+    //     subscriber_id,
+    //     new_subscriber.email.as_ref(),
+    //     new_subscriber.name.as_ref(),
+    //     Utc::now()
+    // );
+    //
+    // transaction.execute(query).await?;
 
     Ok(subscriber_id)
 }

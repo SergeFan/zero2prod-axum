@@ -3,8 +3,9 @@ use axum::http::Request;
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
-use sqlx::postgres::PgPoolOptions;
-use sqlx::PgPool;
+use sea_orm::sqlx::postgres::PgPoolOptions;
+use sea_orm::sqlx::PgPool;
+use sea_orm::{Database, DatabaseConnection, SqlxPostgresConnector};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
@@ -21,14 +22,15 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, std::io::Error> {
-        let connection_pool = get_connection_pool(&configuration.database);
+        let pg_pool = get_connection_pool(&configuration.database);
+        let db_connection = SqlxPostgresConnector::from_sqlx_postgres_pool(pg_pool);
 
         let address = format!("127.0.0.1:{}", configuration.application_port);
         let tcp_listener = listener(address).await;
 
         let port = tcp_listener.local_addr()?.port();
 
-        let serve = run(tcp_listener, connection_pool).await?;
+        let serve = run(tcp_listener, db_connection).await?;
 
         Ok(Self { serve, port })
     }
@@ -37,20 +39,20 @@ impl Application {
         self.port
     }
 
-    pub async fn start_service(self) -> Result<(), std::io::Error> {
+    pub async fn start_service(self) -> std::io::Result<()> {
         self.serve.await
     }
 }
 
 pub struct ApplicationState {
-    pub pool: PgPool,
+    pub db_connection: DatabaseConnection,
 }
 
 pub async fn run(
     tcp_listener: TcpListener,
-    pool: PgPool,
+    db_connection: DatabaseConnection,
 ) -> Result<Serve<TcpListener, Router, Router>, std::io::Error> {
-    let application_state = Arc::new(ApplicationState { pool });
+    let application_state = Arc::new(ApplicationState { db_connection });
 
     let app = Router::new()
         .route("/", get(root))

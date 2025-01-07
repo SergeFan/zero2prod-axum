@@ -15,7 +15,7 @@ name = "zero2prod-axum"
 
 [dependencies]
 anyhow = "1.0"
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.8", features = ["macros"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"

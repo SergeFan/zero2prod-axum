@@ -1,5 +1,3 @@
-use crate::configuration::{DatabaseSettings, Settings};
-use crate::routes::{health_check, subscribe};
 use axum::body::Body;
 use axum::http::Request;
 use axum::routing::{get, post};
@@ -13,8 +11,11 @@ use tower_http::trace::TraceLayer;
 use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::info_span;
 
+use crate::configuration::{DatabaseSettings, Settings};
+use crate::routes::{health_check, subscribe};
+
 pub struct Application {
-    serve: Serve<Router, Router>,
+    serve: Serve<TcpListener, Router, Router>,
     port: u16,
 }
 
@@ -48,7 +49,7 @@ pub struct ApplicationState {
 pub async fn run(
     tcp_listener: TcpListener,
     pool: PgPool,
-) -> Result<Serve<Router, Router>, std::io::Error> {
+) -> Result<Serve<TcpListener, Router, Router>, std::io::Error> {
     let application_state = Arc::new(ApplicationState { pool });
 
     let app = Router::new()

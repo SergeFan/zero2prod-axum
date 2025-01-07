@@ -29,13 +29,14 @@ impl AsRef<str> for SubscriberEmail {
 
 #[cfg(test)]
 mod tests {
+    use super::SubscriberEmail;
+
     use claims::assert_err;
     use fake::faker::internet::en::SafeEmail;
     use fake::Fake;
     use quickcheck::Gen;
-    use rand::rngs::ThreadRng;
-
-    use super::SubscriberEmail;
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
 
     #[test]
     fn empty_string_is_rejected() {
@@ -59,8 +60,10 @@ mod tests {
     struct ValidEmailFixture(pub String);
 
     impl quickcheck::Arbitrary for ValidEmailFixture {
-        fn arbitrary(_: &mut Gen) -> Self {
-            let email = SafeEmail().fake_with_rng(&mut ThreadRng::default());
+        fn arbitrary(g: &mut Gen) -> Self {
+            let mut rng = StdRng::seed_from_u64(u64::arbitrary(g));
+            let email = SafeEmail().fake_with_rng(&mut rng);
+
             Self(email)
         }
     }

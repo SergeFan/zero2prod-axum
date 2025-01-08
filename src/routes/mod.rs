@@ -1,9 +1,10 @@
 mod health_check;
 mod subscriptions;
 
-pub use health_check::*;
 use std::error::Error;
 use std::fmt::Formatter;
+
+pub use health_check::*;
 pub use subscriptions::*;
 
 pub fn error_chain_fmt(e: &impl Error, f: &mut Formatter<'_>) -> std::fmt::Result {

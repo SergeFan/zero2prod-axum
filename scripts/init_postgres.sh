@@ -66,13 +66,12 @@ fi
 >&2 echo "Postgres is up and running on port ${DB_PORT} - running migrations..."
 
 # Create the application database
+CREATE_DATABASE_QUERY="CREATE DATABASE ${APP_DB_NAME};"
+docker exec -it "${CONTAINER_NAME}" psql -U "${APP_USER}" -d postgres -c "${CREATE_DATABASE_QUERY}"
+
 DATABASE_URL=postgres://${APP_USER}:${APP_USER_PWD}@localhost:${DB_PORT}/${APP_DB_NAME}
 export DATABASE_URL
 
-#sqlx database create
-#sqlx migrate run
-
-sqlx database create
 sea-orm-cli migrate
 
 >&2 echo "Postgres has been migrated, ready to go."

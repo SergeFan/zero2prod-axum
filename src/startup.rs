@@ -5,7 +5,7 @@ use axum::serve::Serve;
 use axum::Router;
 use sea_orm::sqlx::postgres::PgPoolOptions;
 use sea_orm::sqlx::PgPool;
-use sea_orm::{Database, DatabaseConnection, SqlxPostgresConnector};
+use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;

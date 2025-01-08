@@ -1,9 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
-use crate::routes::error_chain_fmt;
-use crate::startup::ApplicationState;
 use anyhow::Context;
 use axum::extract::rejection::FormRejection;
 use axum::extract::FromRequest;
@@ -17,6 +14,10 @@ use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseTransaction, TransactionTrait};
 use uuid::Uuid;
+
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::routes::error_chain_fmt;
+use crate::startup::ApplicationState;
 
 #[derive(thiserror::Error)]
 pub enum SubscribeError {
@@ -114,19 +115,6 @@ pub async fn insert_subscriber(
     }
     .insert(transaction)
     .await?;
-
-    // let query = sqlx::query!(
-    //     r#"
-    //     INSERT INTO subscriptions (id, email, name, subscribed_at, status)
-    //     VALUES ($1, $2, $3, $4, 'pending_confirmation')
-    //     "#,
-    //     subscriber_id,
-    //     new_subscriber.email.as_ref(),
-    //     new_subscriber.name.as_ref(),
-    //     Utc::now()
-    // );
-    //
-    // transaction.execute(query).await?;
 
     Ok(subscriber_id)
 }

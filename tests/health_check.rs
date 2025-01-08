@@ -1,9 +1,11 @@
+use std::sync::LazyLock;
+
 use entity::entities::prelude::Subscriptions;
 use migration::{Migrator, MigratorTrait};
 use sea_orm::sqlx::{Connection, Executor, PgConnection, PgPool};
 use sea_orm::{DatabaseConnection, EntityTrait, SqlxPostgresConnector};
-use std::sync::LazyLock;
 use uuid::Uuid;
+
 use zero2prod_axum::configuration::{get_configuration, DatabaseSettings};
 use zero2prod_axum::startup::Application;
 use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
@@ -84,12 +86,7 @@ async fn configure_database(config: &DatabaseSettings) -> DatabaseConnection {
 
     Migrator::up(&db_connection, None)
         .await
-        .expect("TODO: panic message");
-
-    // sqlx::migrate!("./migrations")
-    //     .run(&connection_pool)
-    //     .await
-    //     .expect("Failed to migrate database");
+        .expect("Failed to migrate database for test.");
 
     db_connection
 }

@@ -1,6 +1,8 @@
+mod migrations;
+
 pub use sea_orm_migration::prelude::*;
 
-mod m20250107_122803_create_subscriptions_table;
+use migrations::m20250107_122803_create_subscriptions_table;
 
 pub struct Migrator;
 

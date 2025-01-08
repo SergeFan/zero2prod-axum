@@ -1,19 +1,13 @@
-use std::sync::Arc;
-
-use axum::body::Body;
-use axum::http::Request;
+use crate::configuration::Settings;
+use crate::routes::{health_check, subscribe};
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
+use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use sea_orm::sqlx::postgres::PgPoolOptions;
 use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
+use std::sync::Arc;
 use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
-use tower_request_id::{RequestId, RequestIdLayer};
-use tracing::info_span;
-
-use crate::configuration::Settings;
-use crate::routes::{health_check, subscribe};
 
 pub struct Application {
     serve: Serve<TcpListener, Router, Router>,
@@ -58,24 +52,8 @@ pub async fn run(
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .with_state(application_state)
-        .layer(
-            TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
-                // We get the request id from the extensions
-                let request_id = request
-                    .extensions()
-                    .get::<RequestId>()
-                    .map(ToString::to_string)
-                    .unwrap_or_else(|| "unknown".into());
-                // And then we put it along with other information into the `request` span
-                info_span!(
-                    "request",
-                    id = %request_id,
-                    method = %request.method(),
-                    uri = %request.uri(),
-                )
-            }),
-        )
-        .layer(RequestIdLayer);
+        .layer(OtelInResponseLayer)
+        .layer(OtelAxumLayer::default());
 
     Ok(axum::serve(tcp_listener, app))
 }

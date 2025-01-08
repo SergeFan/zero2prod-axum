@@ -19,6 +19,7 @@ members = ["entity", "migration"]
 [dependencies]
 anyhow = "1.0"
 axum = { version = "0.8", features = ["macros"] }
+axum-tracing-opentelemetry = { version = "0.25", features = ["tracing_level_info"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"
@@ -30,9 +31,6 @@ serde-aux = "4.5"
 serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1.42", features = ["macros", "rt-multi-thread"] }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["trace"] }
-tower-request-id = "0.3"
 tracing = { version = "0.1", features = ["log"] }
 tracing-bunyan-formatter = "0.3"
 tracing-log = "0.2"

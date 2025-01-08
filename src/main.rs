@@ -3,7 +3,7 @@ use zero2prod_axum::startup::Application;
 use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
 
 #[tokio::main]
-async fn main() -> Result<(), std::io::Error> {
+async fn main() -> std::io::Result<()> {
     // Setup logger
     let tracing_subscriber =
         get_subscriber("zero2prod-axum".into(), "info".into(), std::io::stdout);

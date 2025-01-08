@@ -1,18 +1,18 @@
+use std::sync::Arc;
+
 use axum::body::Body;
 use axum::http::Request;
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
 use sea_orm::sqlx::postgres::PgPoolOptions;
-use sea_orm::sqlx::PgPool;
 use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::info_span;
 
-use crate::configuration::{DatabaseSettings, Settings};
+use crate::configuration::Settings;
 use crate::routes::{health_check, subscribe};
 
 pub struct Application {
@@ -22,12 +22,11 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, std::io::Error> {
-        let pg_pool = get_connection_pool(&configuration.database);
+        let pg_pool = PgPoolOptions::new().connect_lazy_with(configuration.database.with_db());
         let db_connection = SqlxPostgresConnector::from_sqlx_postgres_pool(pg_pool);
 
         let address = format!("127.0.0.1:{}", configuration.application_port);
         let tcp_listener = listener(address).await;
-
         let port = tcp_listener.local_addr()?.port();
 
         let serve = run(tcp_listener, db_connection).await?;
@@ -79,10 +78,6 @@ pub async fn run(
         .layer(RequestIdLayer);
 
     Ok(axum::serve(tcp_listener, app))
-}
-
-pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
-    PgPoolOptions::new().connect_lazy_with(configuration.with_db())
 }
 
 pub async fn listener(address: String) -> TcpListener {

@@ -50,8 +50,9 @@ jobs:
           # Grant create db privilege to the app user
           GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
           PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${GRANT_QUERY}"
-          
-          # Create application database
+
+      - name: Create app database
+        run: |
           CREATE_DB_QUERY="CREATE DATABASE ${APP_DB_NAME};"
           PGPASSWORD="${APP_USER_PWD}" psql -U "${APP_USER}" -h "localhost" -d "postgres" -c "${CREATE_DB_QUERY}"
 
@@ -128,8 +129,9 @@ jobs:
           # Grant create db privilege to the app user
           GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
           PGPASSWORD="password" psql -U "postgres" -h "localhost" -c "${GRANT_QUERY}"
-          
-          # Create application database
+
+      - name: Create app database
+        run: |
           CREATE_DB_QUERY="CREATE DATABASE ${APP_DB_NAME};"
           PGPASSWORD="${APP_USER_PWD}" psql -U "${APP_USER}" -h "localhost" -d "postgres" -c "${CREATE_DB_QUERY}"
 

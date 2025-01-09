@@ -1,13 +1,15 @@
-use crate::configuration::Settings;
-use crate::routes::{health_check, subscribe};
+use std::sync::Arc;
+
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
 use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use sea_orm::sqlx::postgres::PgPoolOptions;
 use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
-use std::sync::Arc;
 use tokio::net::TcpListener;
+
+use crate::configuration::Settings;
+use crate::routes::{health_check, subscribe};
 
 pub struct Application {
     serve: Serve<TcpListener, Router, Router>,

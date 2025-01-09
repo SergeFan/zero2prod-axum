@@ -7,10 +7,10 @@ if ! [ -x "$(command -v psql)" ]; then
   exit 1
 fi
 
-if ! [ -x "$(command -v sqlx)" ]; then
-  echo >&2 "Error: sqlx is not installed."
+if ! [ -x "$(command -v sea)" ]; then
+  echo >&2 "Error: sea-orm-cli is not installed."
   echo >&2 "Use:"
-  echo >&2 "    cargo install sqlx-cli --no-default-features --features rustls,postgres"
+  echo >&2 "    cargo install sea-orm-cli"
   echo >&2 "to install it."
   exit 1
 fi
@@ -61,13 +61,13 @@ then
   # Grant create db privileges to the app user
   GRANT_QUERY="ALTER USER ${APP_USER} CREATEDB;"
   docker exec -it "${CONTAINER_NAME}" psql -U "${SUPERUSER}" -c "${GRANT_QUERY}"
+  
+  # Create the application database
+  CREATE_DATABASE_QUERY="CREATE DATABASE ${APP_DB_NAME};"
+  docker exec -it "${CONTAINER_NAME}" psql -U "${APP_USER}" -d postgres -c "${CREATE_DATABASE_QUERY}"
 fi
 
 >&2 echo "Postgres is up and running on port ${DB_PORT} - running migrations..."
-
-# Create the application database
-CREATE_DATABASE_QUERY="CREATE DATABASE ${APP_DB_NAME};"
-docker exec -it "${CONTAINER_NAME}" psql -U "${APP_USER}" -d postgres -c "${CREATE_DATABASE_QUERY}"
 
 DATABASE_URL=postgres://${APP_USER}:${APP_USER_PWD}@localhost:${DB_PORT}/${APP_DB_NAME}
 export DATABASE_URL

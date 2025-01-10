@@ -34,10 +34,11 @@ services:
       - key: APP_DATABASE__DATABASE_NAME
         scope: RUN_TIME
         value: ${newsletter.DATABASE}
-    database:
-      - engine: PG
-        name: newsletter
-        num_nodes: 1
-        size: db-s-dev-database
-        version: "16"
+
+databases:
+  - engine: PG
+    name: newsletter
+    num_nodes: 1
+    size: db-s-dev-database
+    version: "16"
 

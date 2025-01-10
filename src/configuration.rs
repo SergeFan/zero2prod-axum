@@ -32,10 +32,17 @@ impl TryFrom<String> for Environment {
     }
 }
 
-#[derive(Clone, serde::Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub application_port: u16,
+    pub application: ApplicationSettings,
+}
+
+#[derive(serde::Deserialize)]
+pub struct ApplicationSettings {
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+    pub host: String,
 }
 
 #[derive(Clone, serde::Deserialize)]

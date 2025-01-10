@@ -45,7 +45,7 @@ pub async fn spawn_app() -> TestApp {
         configuration.database.database_name = Uuid::new_v4().to_string();
 
         // Use a random OS port
-        configuration.application_port = 0;
+        configuration.application.port = 0;
 
         configuration
     };
@@ -53,7 +53,7 @@ pub async fn spawn_app() -> TestApp {
     // Create and migrate database
     let db_connection = configure_database(&configuration.database).await;
 
-    let application = Application::build(configuration.clone())
+    let application = Application::build(configuration)
         .await
         .expect("Failed to build application");
     let application_port = application.port();

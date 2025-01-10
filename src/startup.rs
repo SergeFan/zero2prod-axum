@@ -21,7 +21,7 @@ impl Application {
         let pg_pool = PgPoolOptions::new().connect_lazy_with(configuration.database.with_db());
         let db_connection = SqlxPostgresConnector::from_sqlx_postgres_pool(pg_pool);
 
-        let address = format!("127.0.0.1:{}", configuration.application_port);
+        let address = format!("127.0.0.1:{}", configuration.application.port);
         let tcp_listener = listener(address).await;
         let port = tcp_listener.local_addr()?.port();
 

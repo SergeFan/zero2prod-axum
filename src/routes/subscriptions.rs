@@ -12,7 +12,8 @@ use chrono::Utc;
 use entity::entities::subscriptions;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, DatabaseTransaction, TransactionTrait};
+use sea_orm::{ActiveModelTrait, DatabaseTransaction, DbErr, TransactionTrait};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
@@ -103,7 +104,7 @@ pub async fn subscribe(
 pub async fn insert_subscriber(
     transaction: &DatabaseTransaction,
     new_subscriber: &NewSubscriber,
-) -> Result<Uuid, anyhow::Error> {
+) -> Result<Uuid, DbErr> {
     let subscriber_id = Uuid::new_v4();
 
     subscriptions::ActiveModel {

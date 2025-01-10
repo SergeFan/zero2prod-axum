@@ -1,0 +1,20 @@
+name: zero2prod-axum
+# Get region slugs from https://www.digitalocean.com/docs/platform/availability-matrix/
+# They must be specified as lowercase.
+# `sdy1` stands for Sydney, Australia
+region: syd1
+services:
+  - name: zero2prod-axum
+    dockerfile_path: Dockerfile
+    source_dir: .
+    github:
+      branch: main
+      deploy_on_push: true
+      repo: SergeFan/zero2prod-axum
+    health_check:
+      http_path: /health_check
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /

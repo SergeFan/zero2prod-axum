@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Formatter};
+use std::iter::repeat_with;
 use std::sync::Arc;
 
 use anyhow::Context;
@@ -9,7 +10,9 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Form;
 use chrono::Utc;
-use entity::entities::subscriptions;
+use entity::{subscription_tokens, subscriptions};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseTransaction, DbErr, TransactionTrait};
@@ -17,6 +20,7 @@ use tracing::error;
 use uuid::Uuid;
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::email_client::EmailClient;
 use crate::routes::error_chain_fmt;
 use crate::startup::ApplicationState;
 
@@ -85,14 +89,33 @@ pub async fn subscribe(
         .await
         .context("Failed to acquire a Postgres connection from the pool")?;
 
-    let _subscriber_id = insert_subscriber(&transaction, &new_subscriber)
+    let subscriber_id = insert_subscriber(&transaction, &new_subscriber)
         .await
         .context("Failed to insert new subscriber in the database")?;
+
+    let subscription_token = generate_subscription_token();
+
+    store_token(&transaction, subscriber_id, &subscription_token)
+        .await
+        .context("Failed to store subscription token in the database")?;
 
     transaction
         .commit()
         .await
         .context("Failed to commit SQL transaction to store a new subscriber")?;
+
+    // Send confirmation email to the new subscriber
+    if send_confirmation_email(
+        &state.email_client,
+        new_subscriber,
+        &state.base_url,
+        &subscription_token,
+    )
+    .await
+    .is_err()
+    {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    }
 
     Ok(StatusCode::OK.into_response())
 }
@@ -105,9 +128,7 @@ pub async fn insert_subscriber(
     transaction: &DatabaseTransaction,
     new_subscriber: &NewSubscriber,
 ) -> Result<Uuid, DbErr> {
-    let subscriber_id = Uuid::new_v4();
-
-    subscriptions::ActiveModel {
+    let subscription = subscriptions::ActiveModel {
         id: Set(Uuid::new_v4()),
         email: Set(new_subscriber.email.as_ref().to_string()),
         name: Set(new_subscriber.name.as_ref().to_string()),
@@ -117,5 +138,71 @@ pub async fn insert_subscriber(
     .insert(transaction)
     .await?;
 
-    Ok(subscriber_id)
+    Ok(subscription.id)
+}
+
+#[tracing::instrument(
+    name = "Store subscription token in the database",
+    skip(transaction, subscription_token)
+)]
+pub async fn store_token(
+    transaction: &DatabaseTransaction,
+    subscriber_id: Uuid,
+    subscription_token: &str,
+) -> Result<(), DbErr> {
+    subscription_tokens::ActiveModel {
+        subscriber_id: Set(subscriber_id),
+        subscription_token: Set(subscription_token.to_string()),
+    }
+    .insert(transaction)
+    .await
+    .map_err(|e| {
+        error!("Failed to store token: {:?}", e);
+        e
+    })?;
+
+    Ok(())
+}
+
+#[tracing::instrument(
+    name = "Send a confirmation email to the new subscriber",
+    skip(email_client, new_subscriber, base_url, subscription_token)
+)]
+pub async fn send_confirmation_email(
+    email_client: &EmailClient,
+    new_subscriber: NewSubscriber,
+    base_url: &str,
+    subscription_token: &str,
+) -> Result<(), reqwest::Error> {
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token={}",
+        base_url, subscription_token
+    );
+
+    let plain_text_body = format!(
+        "Welcome to our newsletter!\nVisit {} to confirm your subscriptions.",
+        confirmation_link
+    );
+    let html_body = format!(
+        "Welcome to our newsletter!<br />Click <a href=\"{}\">here</a> to confirm your subscription.",
+        confirmation_link
+    );
+
+    email_client
+        .send_email(
+            new_subscriber.email,
+            "Welcome!",
+            &html_body,
+            &plain_text_body,
+        )
+        .await
+}
+
+fn generate_subscription_token() -> String {
+    let mut rng = thread_rng();
+
+    repeat_with(|| rng.sample(Alphanumeric))
+        .map(char::from)
+        .take(25)
+        .collect()
 }

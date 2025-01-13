@@ -31,7 +31,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Subscriptions {
+pub(crate) enum Subscriptions {
     Table,
     Id,
     Email,

@@ -3,3 +3,7 @@ application:
 
 database:
   require_ssl: true
+
+email_client:
+  base_url: # TODO: API required
+  sender_email: # TODO: sender domain required

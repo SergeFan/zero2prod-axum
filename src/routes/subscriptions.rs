@@ -105,17 +105,14 @@ pub async fn subscribe(
         .context("Failed to commit SQL transaction to store a new subscriber")?;
 
     // Send confirmation email to the new subscriber
-    if send_confirmation_email(
+    send_confirmation_email(
         &state.email_client,
         new_subscriber,
         &state.base_url,
         &subscription_token,
     )
     .await
-    .is_err()
-    {
-        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
-    }
+    .context("Failed to send a confirmation email")?;
 
     Ok(StatusCode::OK.into_response())
 }

@@ -17,14 +17,17 @@ name = "zero2prod-axum"
 members = ["entity", "migration"]
 
 [dependencies]
+# ORM entities and migration scripts
+entity = { path = "entity" }
+migration = { path = "migration" }
+
+# Project dependencies
 anyhow = "1.0"
 axum = { version = "0.8", features = ["macros"] }
 axum-tracing-opentelemetry = { version = "0.25", features = ["tracing_level_info"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"
-entity = { path = "entity" }
-migration = { path = "migration" }
 rand = { version = "0.8", features = ["std_rng"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }

@@ -39,6 +39,15 @@ pub struct TestApp {
 }
 
 impl TestApp {
+    pub async fn post_newsletters(&self, body: serde_json::Value) -> Response {
+        Client::new()
+            .post(format!("{}/newsletters", self.address))
+            .json(&body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn post_subscriptions(&self, body: String) -> Response {
         Client::new()
             .post(format!("{}/subscriptions", &self.address))

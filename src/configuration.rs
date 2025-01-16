@@ -130,7 +130,5 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         )
         .build()?;
 
-    println!("{:?}", settings.get::<String>("database.host"));
-
     settings.try_deserialize::<Settings>()
 }

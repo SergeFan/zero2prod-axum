@@ -10,11 +10,10 @@ use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tower_request_id::{RequestId, RequestIdLayer};
-use tracing::info_span;
 
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
-use crate::routes::{confirm, health_check, subscribe};
+use crate::routes::{confirm, health_check, publish_newsletters, subscribe};
 
 pub struct Application {
     serve: Serve<TcpListener, Router, Router>,
@@ -94,6 +93,7 @@ pub async fn run(
     let app = Router::new()
         .route("/", get(root))
         .route("/health_check", get(health_check))
+        .route("/newsletters", post(publish_newsletters))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
         .layer(
@@ -106,7 +106,7 @@ pub async fn run(
                     .unwrap_or_else(|| "unknown".into());
 
                 // Put it along with other information into the `request` span
-                info_span!(
+                tracing::info_span!(
                     "request",
                     id = %request_id,
                     method = %request.method(),

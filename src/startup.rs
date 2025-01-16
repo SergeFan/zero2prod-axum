@@ -5,7 +5,6 @@ use axum::extract::Request;
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
-// use axum_tracing_opentelemetry::middleware::{OtelAxumLayer, OtelInResponseLayer};
 use sea_orm::sqlx::postgres::PgPoolOptions;
 use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
 use tokio::net::TcpListener;
@@ -97,8 +96,6 @@ pub async fn run(
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
-        // .layer(OtelInResponseLayer)
-        // .layer(OtelAxumLayer::default())
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
                 // Get the request id from the extensions

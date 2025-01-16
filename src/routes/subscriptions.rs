@@ -15,7 +15,6 @@ use rand::{thread_rng, Rng};
 use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseTransaction, DbErr, TransactionTrait};
-use tracing::error;
 use uuid::Uuid;
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
@@ -41,7 +40,7 @@ impl std::fmt::Debug for SubscribeError {
 
 impl IntoResponse for SubscribeError {
     fn into_response(self) -> Response {
-        error!("{:?}", self);
+        tracing::error!("{:?}", self);
 
         match self {
             SubscribeError::FormRejection(_) | SubscribeError::ValidationError(_) => {

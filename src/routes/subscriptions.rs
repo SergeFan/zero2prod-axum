@@ -1,4 +1,3 @@
-use std::fmt::{Debug, Formatter};
 use std::iter::repeat_with;
 use std::sync::Arc;
 
@@ -34,14 +33,16 @@ pub enum SubscribeError {
     UnexpectedError(#[from] anyhow::Error),
 }
 
-impl Debug for SubscribeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl std::fmt::Debug for SubscribeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         error_chain_fmt(self, f)
     }
 }
 
 impl IntoResponse for SubscribeError {
     fn into_response(self) -> Response {
+        error!("{:?}", self);
+
         match self {
             SubscribeError::FormRejection(_) | SubscribeError::ValidationError(_) => {
                 StatusCode::BAD_REQUEST.into_response()
@@ -87,7 +88,7 @@ pub async fn subscribe(
         .db_connection
         .begin()
         .await
-        .context("Failed to acquire a Postgres connection from the pool")?;
+        .context("Failed to begin a Postgres transaction")?;
 
     let subscriber_id = insert_subscriber(&transaction, &new_subscriber)
         .await
@@ -102,7 +103,7 @@ pub async fn subscribe(
     transaction
         .commit()
         .await
-        .context("Failed to commit SQL transaction to store a new subscriber")?;
+        .context("Failed to commit the Postgres transaction")?;
 
     // Send confirmation email to the new subscriber
     send_confirmation_email(
@@ -152,11 +153,7 @@ pub async fn store_token(
         subscription_token: Set(subscription_token.to_string()),
     }
     .insert(transaction)
-    .await
-    .map_err(|e| {
-        error!("Failed to store token: {:?}", e);
-        e
-    })?;
+    .await?;
 
     Ok(())
 }

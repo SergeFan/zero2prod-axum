@@ -13,7 +13,9 @@ use tower_request_id::{RequestId, RequestIdLayer};
 
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
-use crate::routes::{confirm, health_check, publish_newsletters, subscribe};
+use crate::routes::{
+    confirm, health_check, home, login, login_form, publish_newsletters, subscribe,
+};
 
 pub struct Application {
     serve: Serve<TcpListener, Router, Router>,
@@ -91,8 +93,10 @@ pub async fn run(
     });
 
     let app = Router::new()
-        .route("/", get(root))
+        .route("/", get(home))
         .route("/health_check", get(health_check))
+        .route("/login", get(login_form))
+        .route("/login", post(login))
         .route("/newsletters", post(publish_newsletters))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
@@ -120,8 +124,4 @@ pub async fn run(
         .with_state(application_state);
 
     Ok(axum::serve(tcp_listener, app))
-}
-
-pub async fn root() -> &'static str {
-    "Hello, world!"
 }

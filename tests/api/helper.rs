@@ -1,10 +1,13 @@
-use std::sync::LazyLock;
-
+use argon2::password_hash::SaltString;
+use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
+use entity::users;
 use linkify::{LinkFinder, LinkKind};
 use migration::{Migrator, MigratorTrait};
 use reqwest::{Client, Response, Url};
 use sea_orm::sqlx::{Connection, Executor, PgConnection};
-use sea_orm::DatabaseConnection;
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use std::sync::LazyLock;
 use uuid::Uuid;
 use wiremock::MockServer;
 
@@ -31,17 +34,58 @@ static TRACING: LazyLock<()> = LazyLock::new(|| {
     }
 });
 
+pub struct TestUser {
+    pub user_id: Uuid,
+    pub username: String,
+    pub password: String,
+}
+
+impl TestUser {
+    fn generate() -> Self {
+        Self {
+            user_id: Uuid::new_v4(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, db_connection: &DatabaseConnection) {
+        let salt = SaltString::generate(&mut rand::thread_rng());
+
+        // Match parameters of the default password
+        let password_hash = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(15_000, 2, 1, None).unwrap(),
+        )
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+
+        users::ActiveModel {
+            user_id: Set(self.user_id.to_owned()),
+            user_name: Set(self.username.to_owned()),
+            password_hash: Set(password_hash),
+        }
+        .insert(db_connection)
+        .await
+        .expect("Failed to create test users.");
+    }
+}
+
 pub struct TestApp {
     pub address: String,
     pub port: u16,
     pub db_connection: DatabaseConnection,
     pub email_server: MockServer,
+    pub test_user: TestUser,
 }
 
 impl TestApp {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> Response {
         Client::new()
             .post(format!("{}/newsletters", self.address))
+            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
             .json(&body)
             .send()
             .await
@@ -124,12 +168,17 @@ pub async fn spawn_app() -> TestApp {
 
     tokio::spawn(application.start_service());
 
-    TestApp {
+    let test_app = TestApp {
         address: format!("http://127.0.0.1:{}", application_port),
         port: application_port,
         db_connection,
         email_server,
-    }
+        test_user: TestUser::generate(),
+    };
+
+    test_app.test_user.store(&test_app.db_connection).await;
+
+    test_app
 }
 
 async fn configure_database(settings: &DatabaseSettings) -> DatabaseConnection {

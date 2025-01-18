@@ -1,5 +1,6 @@
 mod m20250107_122803_create_subscriptions_table;
 mod m20250112_124700_create_subscription_tokens_table;
+mod m20250117_135648_create_users_table;
 
 pub use sea_orm_migration::prelude::*;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20250107_122803_create_subscriptions_table::Migration),
             Box::new(m20250112_124700_create_subscription_tokens_table::Migration),
+            Box::new(m20250117_135648_create_users_table::Migration),
         ]
     }
 }

@@ -23,7 +23,9 @@ migration = { path = "migration" }
 
 # Project dependencies
 anyhow = "1.0"
+argon2 = { version = "0.5", features = ["std"] }
 axum = { version = "0.8", features = ["macros"] }
+base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"

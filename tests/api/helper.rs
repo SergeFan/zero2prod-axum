@@ -79,21 +79,35 @@ pub struct TestApp {
     pub db_connection: DatabaseConnection,
     pub email_server: MockServer,
     pub test_user: TestUser,
+    pub api_client: Client,
 }
 
 impl TestApp {
-    pub async fn post_newsletters(&self, body: serde_json::Value) -> Response {
-        Client::new()
-            .post(format!("{}/newsletters", self.address))
-            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
-            .json(&body)
+    pub async fn post_login<Body>(&self, body: &Body) -> Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(format!("{}/login", &self.address))
+            .form(body)
             .send()
             .await
             .expect("Failed to execute request.")
     }
 
+    pub async fn get_login_html(&self) -> String {
+        self.api_client
+            .get(format!("{}/login", self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+            .text()
+            .await
+            .unwrap()
+    }
+
     pub async fn post_subscriptions(&self, body: String) -> Response {
-        Client::new()
+        self.api_client
             .post(format!("{}/subscriptions", &self.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
@@ -127,6 +141,16 @@ impl TestApp {
             html: get_link(body["HtmlBody"].as_str().unwrap()),
             plain_text: get_link(body["TextBody"].as_str().unwrap()),
         }
+    }
+
+    pub async fn post_newsletters(&self, body: serde_json::Value) -> Response {
+        self.api_client
+            .post(format!("{}/newsletters", self.address))
+            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
+            .json(&body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
     }
 }
 
@@ -168,12 +192,19 @@ pub async fn spawn_app() -> TestApp {
 
     tokio::spawn(application.start_service());
 
+    let api_client = Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .cookie_store(true)
+        .build()
+        .unwrap();
+
     let test_app = TestApp {
         address: format!("http://127.0.0.1:{}", application_port),
         port: application_port,
         db_connection,
         email_server,
         test_user: TestUser::generate(),
+        api_client,
     };
 
     test_app.test_user.store(&test_app.db_connection).await;

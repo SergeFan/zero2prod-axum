@@ -5,9 +5,11 @@ use axum::extract::Request;
 use axum::routing::{get, post};
 use axum::serve::Serve;
 use axum::Router;
+use minijinja::AutoEscape;
 use sea_orm::sqlx::postgres::PgPoolOptions;
 use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
 use tokio::net::TcpListener;
+use tower_cookies::CookieManagerLayer;
 use tower_http::trace::TraceLayer;
 use tower_request_id::{RequestId, RequestIdLayer};
 
@@ -40,6 +42,11 @@ impl Application {
             timeout,
         );
 
+        // Template engine environment
+        let mut env = minijinja::Environment::new();
+        env.set_loader(minijinja::path_loader("templates"));
+        env.set_auto_escape_callback(|_| AutoEscape::None);
+
         // App
         let address = format!(
             "{}:{}",
@@ -53,6 +60,7 @@ impl Application {
             db_connection,
             email_client,
             configuration.application.base_url,
+            env,
         )
         .await?;
 
@@ -78,6 +86,7 @@ pub struct ApplicationState {
     pub db_connection: DatabaseConnection,
     pub email_client: EmailClient,
     pub base_url: String,
+    pub env: minijinja::Environment<'static>,
 }
 
 pub async fn run(
@@ -85,11 +94,13 @@ pub async fn run(
     db_connection: DatabaseConnection,
     email_client: EmailClient,
     base_url: String,
+    env: minijinja::Environment<'static>,
 ) -> Result<Serve<TcpListener, Router, Router>, std::io::Error> {
     let application_state = Arc::new(ApplicationState {
         db_connection,
         email_client,
         base_url,
+        env,
     });
 
     let app = Router::new()
@@ -100,6 +111,7 @@ pub async fn run(
         .route("/newsletters", post(publish_newsletters))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
+        .layer(CookieManagerLayer::new())
         .layer(
             TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
                 // Get the request id from the extensions

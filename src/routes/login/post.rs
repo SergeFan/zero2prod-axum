@@ -1,8 +1,8 @@
-use std::fmt::Display;
 use std::sync::Arc;
 
+use axum::body::Body;
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::Form;
 use secrecy::SecretString;
@@ -28,11 +28,15 @@ impl std::fmt::Debug for LoginError {
 
 impl IntoResponse for LoginError {
     fn into_response(self) -> Response {
+        tracing::error!("{:?}", self);
+
         match self {
-            LoginError::AuthenticationError(_) => {
-                // TODO
-                (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
-            }
+            LoginError::AuthenticationError(_) => Response::builder()
+                .status(StatusCode::SEE_OTHER)
+                .header(header::LOCATION, "/login")
+                .header(header::SET_COOKIE, format!("_flash={}", self.to_string()))
+                .body(Body::empty())
+                .unwrap(),
             LoginError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
     }

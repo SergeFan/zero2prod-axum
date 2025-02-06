@@ -30,7 +30,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"
 minijinja = { version = "2.7", features = ["loader"] }
-rand = { version = "~0.8.5", features = ["std_rng"] }
+rand = { version = "~0.8.5", features = ["std_rng"] }  # TODO: wait argon2 & fake to update their rand dependency
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde-aux = "4.5"
@@ -45,7 +45,7 @@ tracing-bunyan-formatter = "0.3"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 unicode-segmentation = "1.12"
-uuid = { version = "1.12", features = ["v4", "serde"] }
+uuid = { version = "1.13", features = ["v4", "serde"] }
 validator = "0.20"
 
 [dependencies.reqwest]

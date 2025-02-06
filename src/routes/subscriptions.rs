@@ -11,7 +11,7 @@ use axum::Form;
 use chrono::Utc;
 use entity::{subscription_tokens, subscriptions};
 use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseTransaction, DbErr, TransactionTrait};
@@ -192,7 +192,7 @@ pub async fn send_confirmation_email(
 }
 
 fn generate_subscription_token() -> String {
-    let mut rng = thread_rng();
+    let mut rng = rand::thread_rng();
 
     repeat_with(|| rng.sample(Alphanumeric))
         .map(char::from)

@@ -33,7 +33,7 @@ minijinja = { version = "2.7", features = ["loader"] }
 rand = { version = "~0.8.5", features = ["std_rng"] }  # TODO: wait argon2 & fake to update their rand dependency
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
-serde-aux = "4.5"
+serde-aux = "4.6"
 serde_json = "1.0"
 thiserror = "2.0"
 tokio = { version = "1.43", features = ["macros", "rt-multi-thread"] }

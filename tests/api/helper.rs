@@ -50,7 +50,8 @@ impl TestUser {
     }
 
     async fn store(&self, db_connection: &DatabaseConnection) {
-        let salt = SaltString::generate(&mut rand::thread_rng());
+        // TODO: wait argon2 to update their `rand` dependency
+        let salt = SaltString::generate(&mut rand::rng());
 
         // Match parameters of the default password
         let password_hash = Argon2::new(

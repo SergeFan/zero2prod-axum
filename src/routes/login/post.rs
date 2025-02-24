@@ -34,7 +34,7 @@ impl IntoResponse for LoginError {
             LoginError::AuthenticationError(_) => Response::builder()
                 .status(StatusCode::SEE_OTHER)
                 .header(header::LOCATION, "/login")
-                .header(header::SET_COOKIE, format!("_flash={}", self.to_string()))
+                .header(header::SET_COOKIE, format!("_flash={}", self))
                 .body(Body::empty())
                 .unwrap(),
             LoginError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),

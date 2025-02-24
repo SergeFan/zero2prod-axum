@@ -10,7 +10,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Form;
 use chrono::Utc;
 use entity::{subscription_tokens, subscriptions};
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use rand::Rng;
 use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::ActiveValue::Set;
@@ -192,7 +192,7 @@ pub async fn send_confirmation_email(
 }
 
 fn generate_subscription_token() -> String {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     repeat_with(|| rng.sample(Alphanumeric))
         .map(char::from)

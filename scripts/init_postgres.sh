@@ -26,7 +26,7 @@ APP_DB_NAME="${APP_DB_NAME:=newsletter}"
 if [[ -z "${SKIP_DOCKER}" ]]
 then
   # Launch postgres using Docker
-  CONTAINER_NAME="newsletter"
+  CONTAINER_NAME="newsletter_postgres"
 
   # Stop and delete last used container
   if [[ $(! docker container ls -a | grep "${CONTAINER_NAME}") ]]

@@ -22,7 +22,7 @@ entity = { path = "entity" }
 migration = { path = "migration" }
 
 # Project dependencies
-anyhow = "1.0"
+anyhow = "1"
 argon2 = { version = "0.5", features = ["std"] }
 axum = { version = "0.8", features = ["macros"] }
 base64 = "0.22"
@@ -32,20 +32,20 @@ config = "0.15"
 minijinja = { version = "2.7", features = ["loader"] }
 rand = { version = "0.9", features = ["std_rng"] }
 secrecy = { version = "0.10", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 serde-aux = "4.6"
-serde_json = "1.0"
-thiserror = "2.0"
+serde_json = "1"
+thiserror = "2"
 tokio = { version = "1.43", features = ["macros", "rt-multi-thread"] }
 tower-cookies = "0.11"
-tower-http = { version = "0.6.2", features = ["trace"] }
+tower-http = { version = "0.6", features = ["trace"] }
 tower-request-id = "0.3"
 tracing = { version = "0.1", features = ["log"] }
 tracing-bunyan-formatter = "0.3"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
 unicode-segmentation = "1.12"
-uuid = { version = "1.14", features = ["v4", "serde"] }
+uuid = { version = "1.15", features = ["v4", "serde"] }
 validator = "0.20"
 
 [dependencies.reqwest]

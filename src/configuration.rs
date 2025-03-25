@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use sea_orm::sqlx::postgres::{PgConnectOptions, PgSslMode};
 use sea_orm::sqlx::ConnectOptions;
+use sea_orm::sqlx::postgres::{PgConnectOptions, PgSslMode};
 use secrecy::{ExposeSecret, SecretString};
 use serde_aux::field_attributes::deserialize_number_from_string;
 

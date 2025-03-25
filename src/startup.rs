@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use axum::Router;
 use axum::body::Body;
 use axum::extract::Request;
 use axum::routing::{get, post};
 use axum::serve::Serve;
-use axum::Router;
 use sea_orm::sqlx::postgres::PgPoolOptions;
 use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
 use tokio::net::TcpListener;

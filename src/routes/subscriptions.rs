@@ -2,18 +2,18 @@ use std::iter::repeat_with;
 use std::sync::Arc;
 
 use anyhow::Context;
-use axum::extract::rejection::FormRejection;
+use axum::Form;
 use axum::extract::FromRequest;
 use axum::extract::State;
+use axum::extract::rejection::FormRejection;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Form;
 use chrono::Utc;
 use entity::{subscription_tokens, subscriptions};
 use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
-use sea_orm::prelude::DateTimeWithTimeZone;
+use rand::{Rng, thread_rng};
 use sea_orm::ActiveValue::Set;
+use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::{ActiveModelTrait, DatabaseTransaction, DbErr, TransactionTrait};
 use uuid::Uuid;
 

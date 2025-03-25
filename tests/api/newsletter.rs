@@ -1,7 +1,7 @@
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
 
-use crate::helper::{spawn_app, ConfirmationLinks, TestApp};
+use crate::helper::{ConfirmationLinks, TestApp, spawn_app};
 
 #[tokio::test]
 async fn newsletters_returns_400_for_invalid_data() {

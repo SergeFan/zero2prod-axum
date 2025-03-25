@@ -3,13 +3,13 @@ use std::sync::LazyLock;
 use linkify::{LinkFinder, LinkKind};
 use migration::{Migrator, MigratorTrait};
 use reqwest::{Client, Response, Url};
-use sea_orm::sqlx::{Connection, Executor, PgConnection};
 use sea_orm::DatabaseConnection;
+use sea_orm::sqlx::{Connection, Executor, PgConnection};
 use uuid::Uuid;
 use wiremock::MockServer;
 
-use zero2prod_axum::configuration::{get_configuration, DatabaseSettings};
-use zero2prod_axum::startup::{get_database_connection, Application};
+use zero2prod_axum::configuration::{DatabaseSettings, get_configuration};
+use zero2prod_axum::startup::{Application, get_database_connection};
 use zero2prod_axum::telemetry::{get_subscriber, init_subscriber};
 
 static TRACING: LazyLock<()> = LazyLock::new(|| {

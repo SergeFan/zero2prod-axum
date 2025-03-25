@@ -2,7 +2,7 @@
 name = "zero2prod-axum"
 version = "0.1.0"
 authors = ["Jaeson Fan"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,7 +27,7 @@ axum = { version = "0.8", features = ["macros"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"
-rand = { version = "~0.8.5", features = ["std_rng"] }
+rand = { version = "=0.8.5", features = ["std_rng"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde-aux = "4.6"
@@ -51,7 +51,7 @@ default-features = false
 features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid"]
 
 [dev-dependencies]
-fake = "~3.1"
+fake = "=3.1.0"
 linkify = "0.10"
 quickcheck = "1.0"
 quickcheck_macros = "1.0"

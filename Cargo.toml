@@ -29,7 +29,7 @@ base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 claims = "0.8"
 config = "0.15"
-minijinja = { version = "2.8", features = ["loader"] }
+minijinja = { version = "2.9", features = ["loader"] }
 rand = { version = "0.9", features = ["std_rng"] }
 secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }

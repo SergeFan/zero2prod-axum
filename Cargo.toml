@@ -59,7 +59,7 @@ default-features = false
 features = ["sqlx-postgres", "runtime-tokio-rustls", "macros", "with-chrono", "with-uuid"]
 
 [dev-dependencies]
-fake = "4.2"
+fake = "4.3"
 linkify = "0.10"
 quickcheck = "1"
 quickcheck_macros = "1"
